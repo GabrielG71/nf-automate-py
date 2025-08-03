@@ -33,23 +33,24 @@ class ExtratorNFePDF:
             }
     
     def _extrair_razao_social_emitente(self, texto: str) -> str:
-        padrao_danfe = r'DANFE.*?\n(.*?)(?=\d{2}[.\s]?\d{3}[.\s]?\d{3})'
+        padrao_danfe = r'(?:DANFE|IDENTIFICAÇAO DO EMITENTE)\s*\n\s*(.*?)(?:\n|\d{2}[.\s]?\d{3}[.\s]?\d{3})'
         match_danfe = re.search(padrao_danfe, texto, re.DOTALL | re.IGNORECASE)
         if match_danfe:
             candidato = self._limpar_nome_empresa(match_danfe.group(1))
-            if len(candidato) > 10:
+            if self._validar_nome_empresa(candidato):
                 return candidato
         
+        # Tentar extrair a razão social do emitente usando o padrão de CNPJ
         linhas = texto.split('\n')
-        primeiro_cnpj_linha = next((i for i, linha in enumerate(linhas) 
-                                  if re.search(r'\d{2}[.\s]?\d{3}[.\s]?\d{3}[/\s]?\d{4}[-\s]?\d{2}', linha)), -1)
+        for i, linha in enumerate(linhas):
+            if re.search(r'\d{2}[.\s]?\d{3}[.\s]?\d{3}[/\s]?\d{4}[-\s]?\d{2}', linha):
+                # Encontrou um CNPJ, tentar pegar a linha anterior como razão social
+                if i > 0:
+                    candidato = self._limpar_nome_empresa(linhas[i-1])
+                    if self._validar_nome_empresa(candidato):
+                        return candidato
         
-        if primeiro_cnpj_linha > 0:
-            for i in range(max(0, primeiro_cnpj_linha - 10), primeiro_cnpj_linha):
-                candidato = self._limpar_nome_empresa(linhas[i])
-                if self._validar_nome_empresa(candidato):
-                    return candidato
-        
+        # Padrões adicionais para empresas
         padroes_empresa = [
             r'([A-ZÁÊÀÎÔÇ][A-ZÁÊÀÎÔÇ\s]+(?:LTDA|S\.?A\.?|ME|EPP|EIRELI))',
             r'([A-ZÁÊÀÎÔÇ][A-ZÁÊÀÎÔÇ\s]+(?:COMERCIO|INDUSTRIA|SERVICOS))',
@@ -61,8 +62,7 @@ class ExtratorNFePDF:
                 candidato = self._limpar_nome_empresa(match)
                 if self._validar_nome_empresa(candidato):
                     return candidato
-        return ""
-    
+        return ""    
     def _limpar_nome_empresa(self, texto: str) -> str:
         if not texto:
             return ""
