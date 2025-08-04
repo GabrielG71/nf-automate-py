@@ -59,46 +59,8 @@ class ExtratorNFePDF:
         return (int(cnpj[12]) == calcular_digito(cnpj, pesos_d1) and 
                 int(cnpj[13]) == calcular_digito(cnpj, pesos_d2))
 
-    def _extrair_cnpjs_estruturados(self, texto: str) -> Tuple[str, str]:
-        """Extrai CNPJs considerando as seções específicas do DANFE."""
-        cnpj_emitente = ""
-        cnpj_destinatario = ""
-        
-        # Padrões para encontrar CNPJs
-        padrao_cnpj = r'(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})'
-        
-        # Procura seção do emitente
-        secao_emitente = re.search(
-            r'(?:IDENTIFICAÇÃO DO EMITENTE|IDENTIFICACAO DO EMITENTE|EMITENTE).*?(?=DESTINATÁRIO|DESTINATARIO|REMETENTE|DADOS DO PRODUTO)',
-            texto, re.DOTALL | re.IGNORECASE
-        )
-        
-        if secao_emitente:
-            cnpjs_emitente = re.findall(padrao_cnpj, secao_emitente.group(0))
-            for cnpj in cnpjs_emitente:
-                cnpj_limpo = re.sub(r'[^\d]', '', cnpj)
-                if len(cnpj_limpo) == 14 and self._validar_cnpj(cnpj_limpo):
-                    cnpj_emitente = f"{cnpj_limpo[:2]}.{cnpj_limpo[2:5]}.{cnpj_limpo[5:8]}/{cnpj_limpo[8:12]}-{cnpj_limpo[12:14]}"
-                    break
-        
-        # Procura seção do destinatário
-        secao_destinatario = re.search(
-            r'(?:DESTINATÁRIO|DESTINATARIO).*?(?=DUPLICATAS|CÁLCULO DO IMPOSTO|CALCULO DO IMPOSTO|TRANSPORTADOR|DADOS DO PRODUTO)',
-            texto, re.DOTALL | re.IGNORECASE
-        )
-        
-        if secao_destinatario:
-            cnpjs_destinatario = re.findall(padrao_cnpj, secao_destinatario.group(0))
-            for cnpj in cnpjs_destinatario:
-                cnpj_limpo = re.sub(r'[^\d]', '', cnpj)
-                if len(cnpj_limpo) == 14 and self._validar_cnpj(cnpj_limpo) and cnpj != cnpj_emitente:
-                    cnpj_destinatario = f"{cnpj_limpo[:2]}.{cnpj_limpo[2:5]}.{cnpj_limpo[5:8]}/{cnpj_limpo[8:12]}-{cnpj_limpo[12:14]}"
-                    break
-        
-        return cnpj_emitente, cnpj_destinatario
-
-    def _extrair_cnpjs_fallback(self, texto: str) -> Tuple[str, str]:
-        """Método fallback para documentos sem estrutura clara (como digitalizados)."""
+    def _extrair_cnpjs(self, texto: str) -> Tuple[str, str]:
+        """Extrai CNPJs do emitente e destinatário."""
         padroes = [r'(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})', r'(\d{14})']
         cnpjs_validos = []
         
@@ -114,46 +76,11 @@ class ExtratorNFePDF:
         return (cnpjs_validos[0] if len(cnpjs_validos) > 0 else "", 
                 cnpjs_validos[1] if len(cnpjs_validos) > 1 else "")
 
-    def _extrair_razao_social_estruturada(self, texto: str, emitente: bool = True) -> str:
-        """Extrai razão social das seções específicas do DANFE."""
-        if emitente:
-            # Procura na seção do emitente
-            match = re.search(
-                r'(?:IDENTIFICAÇÃO DO EMITENTE|IDENTIFICACAO DO EMITENTE)[\s\n]*([^\n]+?)(?=\n.*?(?:ENDEREÇO|ENDERECO|CNPJ|\d{2}\.\d{3}\.\d{3}))',
-                texto, re.DOTALL | re.IGNORECASE
-            )
-        else:
-            # Procura na seção do destinatário
-            match = re.search(
-                r'(?:DESTINATÁRIO|DESTINATARIO).*?NOME.*?RAZÃO SOCIAL[\s\n]*([^\n]+?)(?=\n.*?(?:ENDEREÇO|ENDERECO|CNPJ|\d{2}\.\d{3}\.\d{3}))',
-                texto, re.DOTALL | re.IGNORECASE
-            )
-            
-            # Se não encontrar, tenta um padrão mais simples
-            if not match:
-                match = re.search(
-                    r'(?:DESTINATÁRIO|DESTINATARIO)[\s\n]*([^\n]+?)(?=\n.*?(?:ENDEREÇO|ENDERECO|RUA|CNPJ|\d{2}\.\d{3}\.\d{3}))',
-                    texto, re.DOTALL | re.IGNORECASE
-                )
-        
-        if match:
-            nome = re.sub(r'[^\w\sÀ-ÿ&\-]', ' ', match.group(1))
-            nome = re.sub(r'\s+', ' ', nome).strip().upper()
-            # Remove palavras comuns que não fazem parte do nome
-            palavras_remover = ['NOME', 'RAZÃO', 'SOCIAL', 'REMETENTE', 'DESTINATÁRIO', 'DESTINATARIO']
-            palavras = nome.split()
-            palavras_filtradas = [p for p in palavras if p not in palavras_remover]
-            nome_final = ' '.join(palavras_filtradas).strip()
-            
-            if len(nome_final) > 5 and len(nome_final.split()) >= 2:
-                return nome_final
-        return ""
-
-    def _extrair_razao_social_fallback(self, texto: str, emitente: bool = True) -> str:
-        """Método fallback para extrair razão social de documentos sem estrutura clara."""
+    def _extrair_razao_social(self, texto: str, emitente: bool = True) -> str:
+        """Extrai razão social do texto."""
         if emitente:
             padroes = [
-                r'(?:EMITENTE)[\s\n]*(.*?)(?=\n.*?CNPJ|\n.*?\d{2}\.\d{3}\.\d{3})',
+                r'(?:IDENTIFICAÇÃO DO EMITENTE|EMITENTE)[\s\n]*(.*?)(?=\n.*?CNPJ|\n.*?\d{2}\.\d{3}\.\d{3})',
                 r'DANFE[\s\n]*.*?[\s\n]*(.*?)(?=\n.*?CNPJ|\n.*?\d{2}\.\d{3}\.\d{3})'
             ]
         else:
@@ -164,41 +91,24 @@ class ExtratorNFePDF:
         for padrao in padroes:
             match = re.search(padrao, texto, re.DOTALL | re.IGNORECASE)
             if match:
-                nome = re.sub(r'[^\w\sÀ-ÿ&\-]', ' ', match.group(1))
+                nome = re.sub(r'[^\w\sÀ-ÿ]', ' ', match.group(1))
                 nome = re.sub(r'\s+', ' ', nome).strip().upper()
                 if len(nome) > 5 and len(nome.split()) >= 2:
                     return nome
         return ""
 
-    def _detectar_tipo_documento(self, texto: str) -> str:
-        """Detecta se o documento é um DANFE estruturado ou digitalizado."""
-        indicadores_danfe = [
-            'IDENTIFICAÇÃO DO EMITENTE',
-            'IDENTIFICACAO DO EMITENTE', 
-            'DESTINATÁRIO / REMETENTE',
-            'DESTINATARIO / REMETENTE',
-            'DOCUMENTO AUXILIAR DA'
-        ]
-        
-        for indicador in indicadores_danfe:
-            if indicador in texto.upper():
-                return 'danfe_estruturado'
-        
-        return 'documento_digitalizado'
-
     def _extrair_numero_nf(self, texto: str) -> str:
         """Extrai número da NFe."""
         padroes = [
             r'NF-e\s*[nN]º?\s*(\d{9}|\d{3}\.\d{3}\.\d{3})',
-            r'NÚMERO\s*[:\-]?\s*(\d{9}|\d{3}\.\d{3}\.\d{3})',
-            r'Nº\s*(\d{9}|\d{3}\.\d{3}\.\d{3})'
+            r'NÚMERO\s*[:\-]?\s*(\d{9}|\d{3}\.\d{3}\.\d{3})'
         ]
         
         for padrao in padroes:
             match = re.search(padrao, texto, re.IGNORECASE)
             if match:
                 numero = match.group(1).replace('.', '')
-                if len(numero) >= 6 and numero.isdigit():
+                if len(numero) == 9 and numero.isdigit():
                     return numero
         return ""
 
@@ -227,8 +137,7 @@ class ExtratorNFePDF:
         padroes = [
             r'VALOR TOTAL DA NOTA\s*[:\-]?\s*([\d\.,]+)',
             r'vNF\s*[:\-]?\s*([\d\.,]+)',
-            r'TOTAL GERAL\s*[:\-]?\s*([\d\.,]+)',
-            r'VALOR TOTAL:\s*R\$\s*([\d\.,]+)'
+            r'TOTAL GERAL\s*[:\-]?\s*([\d\.,]+)'
         ]
         
         for padrao in padroes:
@@ -259,19 +168,9 @@ class ExtratorNFePDF:
             if not texto.strip():
                 return {'arquivo': nome_arquivo, 'erro': 'Falha na extração'}
 
-            # Detecta tipo de documento e extrai dados apropriadamente
-            tipo_documento = self._detectar_tipo_documento(texto)
+            # Extrai dados
+            cnpj_emitente, cnpj_destinatario = self._extrair_cnpjs(texto)
             
-            if tipo_documento == 'danfe_estruturado':
-                cnpj_emitente, cnpj_destinatario = self._extrair_cnpjs_estruturados(texto)
-                razao_emitente_extraida = self._extrair_razao_social_estruturada(texto, True)
-                razao_destinatario_extraida = self._extrair_razao_social_estruturada(texto, False)
-            else:
-                cnpj_emitente, cnpj_destinatario = self._extrair_cnpjs_fallback(texto)
-                razao_emitente_extraida = self._extrair_razao_social_fallback(texto, True)
-                razao_destinatario_extraida = self._extrair_razao_social_fallback(texto, False)
-            
-            # Consulta APIs para dados complementares
             dados_emitente = self.consultar_cnpj_api(cnpj_emitente) if cnpj_emitente else None
             dados_destinatario = self.consultar_cnpj_api(cnpj_destinatario) if cnpj_destinatario else None
             
@@ -280,15 +179,14 @@ class ExtratorNFePDF:
                 'cnpj_emitente': cnpj_emitente,
                 'cnpj_destinatario': cnpj_destinatario,
                 'razao_social_emitente': (dados_emitente['razao_social'] if dados_emitente 
-                                        else razao_emitente_extraida),
+                                        else self._extrair_razao_social(texto, True)),
                 'razao_social_destinatario': (dados_destinatario['razao_social'] if dados_destinatario 
-                                            else razao_destinatario_extraida),
+                                            else self._extrair_razao_social(texto, False)),
                 'numero_nf': self._extrair_numero_nf(texto),
                 'data_nf': self._extrair_data_nf(texto),
                 'valor_total': self._extrair_valor_total(texto),
                 'uf_emitente': dados_emitente.get('uf', '') if dados_emitente else '',
-                'uf_destinatario': dados_destinatario.get('uf', '') if dados_destinatario else '',
-                'tipo_documento': tipo_documento
+                'uf_destinatario': dados_destinatario.get('uf', '') if dados_destinatario else ''
             }
             
         except Exception as e:
@@ -305,32 +203,18 @@ class ExtratorNFePDF:
         print(f"🔍 Processando {len(arquivos_pdf)} arquivo(s) PDF...")
         
         for arquivo in arquivos_pdf:
-            print(f"📄 Processando: {arquivo}")
             dados = self.extrair_dados_pdf(arquivo)
             self.dados_extraidos.append(dados)
-            
-            # Mostra informações do processamento
-            if 'erro' not in dados:
-                print(f"  ✅ Emitente: {dados['razao_social_emitente'][:50]}...")
-                print(f"  ✅ Destinatário: {dados['razao_social_destinatario'][:50]}...")
-                print(f"  ✅ Tipo: {dados['tipo_documento']}")
-            else:
-                print(f"  ❌ Erro: {dados['erro']}")
         
         # Salva Excel
         if self.dados_extraidos:
             df = pd.DataFrame(self.dados_extraidos)
             # Remove colunas de erro se existirem
             if 'erro' in df.columns:
-                df_limpo = df[df['erro'].isna()].drop('erro', axis=1)
-                if not df_limpo.empty:
-                    df_limpo.to_excel('dados_nfe_extraidos.xlsx', index=False)
-                    print(f"✅ Excel gerado com sucesso! {len(df_limpo)} registro(s) processado(s)")
-                else:
-                    print("❌ Nenhum dado válido para salvar")
-            else:
-                df.to_excel('dados_nfe_extraidos.xlsx', index=False)
-                print(f"✅ Excel gerado com sucesso! {len(self.dados_extraidos)} registro(s) processado(s)")
+                df = df.drop('erro', axis=1)
+            
+            df.to_excel('dados_nfe_extraidos.xlsx', index=False)
+            print(f"✅ Excel gerado com sucesso! {len(self.dados_extraidos)} registro(s) processado(s)")
         else:
             print("❌ Nenhum dado extraído")
 
