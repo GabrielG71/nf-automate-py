@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-NFe PDF Simplificado - Processador Otimizado
-=============================================
+NFe PDF Simplificado - Processador Otimizado com Interface Gráfica
+===============================================================
 
 Processa PDFs de NFe e extrai dados essenciais para planilha Excel.
 Foca apenas em materiais recicláveis específicos.
@@ -18,6 +18,9 @@ import time
 import requests
 from typing import List, Dict, Optional, Tuple
 import traceback
+import tkinter as tk
+from tkinter import ttk, scrolledtext
+import threading
 
 # Importações principais
 import fitz  # PyMuPDF
@@ -30,15 +33,27 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('logs/nfe_processor.log', encoding='utf-8'),
-        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
+# Handler para exibir logs na interface gráfica
+class TextHandler(logging.Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.text_widget.configure(state='normal')
+        self.text_widget.insert(tk.END, msg + '\n')
+        self.text_widget.see(tk.END)
+        self.text_widget.configure(state='disabled')
+
 class NFeProcessorSimplified:
     """Classe simplificada para processamento de NFes focada em materiais recicláveis"""
     
-    def __init__(self):
+    def __init__(self, log_widget=None):
         self.base_dir = pathlib.Path(__file__).parent
         
         # Diretórios de trabalho
@@ -56,6 +71,12 @@ class NFeProcessorSimplified:
         
         # Configurar expressões regulares
         self._setup_patterns()
+        
+        # Adicionar handler de log para interface gráfica, se fornecido
+        if log_widget:
+            text_handler = TextHandler(log_widget)
+            text_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            logger.addHandler(text_handler)
     
     def _setup_patterns(self):
         """Configura padrões regex para extração"""
@@ -533,18 +554,70 @@ class NFeProcessorSimplified:
         
         logger.info("\nProcessamento concluído!")
 
+class NFeProcessorGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("NFe Processor - Materiais Recicláveis")
+        self.root.geometry("600x400")
+        
+        # Frame principal
+        self.main_frame = ttk.Frame(self.root, padding="10")
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Label de título
+        ttk.Label(self.main_frame, text="Processador de Notas Fiscais (NF-e)", font=("Helvetica", 12, "bold")).grid(row=0, column=0, columnspan=2, pady=5)
+        
+        # Área de log
+        self.log_text = scrolledtext.ScrolledText(self.main_frame, height=15, width=70, state='disabled')
+        self.log_text.grid(row=1, column=0, columnspan=2, pady=10)
+        
+        # Botão de processar
+        self.process_button = ttk.Button(self.main_frame, text="Processar PDFs", command=self.start_processing)
+        self.process_button.grid(row=2, column=0, pady=5, sticky=tk.W)
+        
+        # Botão de sair
+        ttk.Button(self.main_frame, text="Sair", command=self.root.quit).grid(row=2, column=1, pady=5, sticky=tk.E)
+        
+        # Configurar redimensionamento
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
+        
+        # Estado do processamento
+        self.is_processing = False
+    
+    def start_processing(self):
+        if self.is_processing:
+            return
+        
+        self.is_processing = True
+        self.process_button.configure(state='disabled')
+        
+        # Limpar área de log
+        self.log_text.configure(state='normal')
+        self.log_text.delete(1.0, tk.END)
+        self.log_text.configure(state='disabled')
+        
+        # Iniciar processamento em uma thread separada
+        threading.Thread(target=self.run_processing, daemon=True).start()
+    
+    def run_processing(self):
+        try:
+            processor = NFeProcessorSimplified(self.log_text)
+            processor.run()
+        except Exception as e:
+            logger.error(f"Erro fatal: {e}")
+            logger.error(traceback.format_exc())
+        finally:
+            self.is_processing = False
+            self.process_button.configure(state='normal')
 
 def main():
-    """Função principal"""
-    try:
-        processor = NFeProcessorSimplified()
-        processor.run()
-    except KeyboardInterrupt:
-        logger.info("\nProcessamento interrompido pelo usuário")
-    except Exception as e:
-        logger.error(f"Erro fatal: {e}")
-        logger.error(traceback.format_exc())
-
+    """Função principal com interface gráfica"""
+    root = tk.Tk()
+    app = NFeProcessorGUI(root)
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
