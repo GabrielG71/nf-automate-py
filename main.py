@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-NFe PDF para Excel - Processador Otimizado com API CNPJ
-======================================================
+NFe PDF Simplificado - Processador Otimizado
+=============================================
 
-Processa PDFs de NFe e extrai dados para planilha Excel.
-Inclui consulta automática de CNPJ e classificação de materiais.
+Processa PDFs de NFe e extrai dados essenciais para planilha Excel.
+Foca apenas em materiais recicláveis específicos.
 
 Autor: Adaptado para uso pessoal
 Data: 2025
@@ -35,12 +35,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class NFeProcessor:
-    """Classe principal para processamento de NFes com API CNPJ"""
+class NFeProcessorSimplified:
+    """Classe simplificada para processamento de NFes focada em materiais recicláveis"""
     
-    def __init__(self, config_dir: str = "config"):
+    def __init__(self):
         self.base_dir = pathlib.Path(__file__).parent
-        self.config_dir = self.base_dir / config_dir
         
         # Diretórios de trabalho
         self.input_dir = self.base_dir / "input"
@@ -57,38 +56,15 @@ class NFeProcessor:
         
         # Configurar expressões regulares
         self._setup_patterns()
-        
-        # Configurar mapeamento de colunas
-        self._setup_column_mapping()
     
     def _setup_patterns(self):
         """Configura padrões regex para extração"""
         self.patterns = {
             'decimal_trans': str.maketrans({".": "", ",": "."}),
             'cnpj': re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"),
-            'cnpj_limpo': re.compile(r"\d{14}"),
-            'cpf': re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}"),
             'data_emissao': re.compile(r"EMISS[ÃA]O[:\s]*([0-9]{2}/[0-9]{2}/[0-9]{4})", re.I),
-            'numero_nfe': re.compile(r"NF-e\s+N[ºº°]\s*(\d{1,9})\s+S[ÉE]RIE\s*(\d{1,3})", re.I),
-            'chave_acesso': re.compile(r"CHAVE\s+DE\s+ACESSO[:\s\n]*((?:\d[\s\n]*){44})", re.I),
-            'valor_total': re.compile(r"VALOR\s+TOTAL[:\sR\$]*([0-9\.\,]+)", re.I),
+            'numero_nfe': re.compile(r"NF-e\s+N[ºº°]\s*(\d{1,9})", re.I),
             'numero_simples': re.compile(r"N[ºº°]\s*(\d+)", re.I),
-            'serie_simples': re.compile(r"S[ÉE]RIE\s*(\d+)", re.I),
-        }
-    
-    def _setup_column_mapping(self):
-        """Configura mapeamento de colunas da tabela de itens"""
-        self.column_mapping = {
-            0: "codigo_item", 1: "descricao", 2: "ncm", 3: "cst", 4: "cfop", 
-            5: "unid", 6: "quantidade", 7: "valor_unit", 8: "valor_total", 
-            9: "desconto", 10: "base_calculo_icms", 11: "valor_icms", 
-            12: "valor_ipi", 13: "aliquota_icms", 14: "aliquota_ipi"
-        }
-        
-        self.numeric_columns = {
-            "quantidade", "valor_unit", "valor_total", "desconto",
-            "base_calculo_icms", "valor_icms", "valor_ipi",
-            "aliquota_icms", "aliquota_ipi"
         }
     
     def _validar_cnpj(self, cnpj: str) -> bool:
@@ -123,7 +99,7 @@ class NFeProcessor:
             return self.cache_cnpj[cnpj_limpo]
             
         try:
-            time.sleep(0.3)  # Rate limiting para não sobrecarregar a API
+            time.sleep(0.3)  # Rate limiting
             logger.info(f"Consultando CNPJ na API: {cnpj_limpo}")
             
             response = requests.get(
@@ -135,19 +111,6 @@ class NFeProcessor:
                 dados = response.json()
                 resultado = {
                     'razao_social': dados.get('razao_social', '').strip().upper(),
-                    'nome_fantasia': dados.get('nome_fantasia', '').strip().upper(),
-                    'porte': dados.get('porte', ''),
-                    'atividade_principal': dados.get('atividade_principal', {}).get('text', ''),
-                    'natureza_juridica': dados.get('natureza_juridica', ''),
-                    'situacao': dados.get('situacao', ''),
-                    'uf': dados.get('uf', ''),
-                    'municipio': dados.get('municipio', ''),
-                    'bairro': dados.get('bairro', ''),
-                    'logradouro': dados.get('logradouro', ''),
-                    'numero': dados.get('numero', ''),
-                    'cep': dados.get('cep', ''),
-                    'telefone': dados.get('telefone', ''),
-                    'email': dados.get('email', '')
                 }
                 self.cache_cnpj[cnpj_limpo] = resultado
                 logger.info(f"✅ CNPJ consultado: {resultado['razao_social']}")
@@ -162,71 +125,42 @@ class NFeProcessor:
             
         return None
     
-    def identificar_tipo_material(self, descricao: str) -> str:
-        """Classifica o tipo de material baseado na descrição"""
+    def identificar_tipo_material(self, descricao: str) -> Optional[str]:
+        """Classifica o tipo de material - APENAS os 4 tipos específicos solicitados"""
         if not descricao:
-            return "Outros"
+            return None
             
         desc_lower = descricao.lower()
         
-        # Classificação hierárquica de materiais recicláveis
+        # PLÁSTICO (PEAD, PET, PS, PP, PEBD, PVC)
         if any(palavra in desc_lower for palavra in [
+            'plastico', 'plástico', 'pet', 'pvc', 'pead', 'pebd', 'pp', 'ps',
+            'polietileno', 'polipropileno', 'poliestireno'
+        ]):
+            return 'PLASTICO'
+        
+        # METAL
+        elif any(palavra in desc_lower for palavra in [
             'metal', 'ferro', 'aco', 'aço', 'ferroso', 'inox', 'inoxidavel', 
             'aluminio', 'alumínio', 'cobre', 'bronze', 'latao', 'latão', 
             'zinco', 'chumbo', 'sucata metalica', 'sucata metálica'
         ]):
-            return 'Metal'
+            return 'METAL'
         
+        # VIDRO
         elif any(palavra in desc_lower for palavra in [
-            'papel', 'papelao', 'papelão', 'cartao', 'cartão', 'jornal', 
-            'revista', 'livro', 'caderno', 'arquivo', 'branco', ' iv', 
-            'ondulado', 'kraft', 'sulfite'
+            'vidro', 'cristal', 'garrafa vidro'
         ]):
-            return 'Papel'
+            return 'VIDRO'
         
+        # PAPEL (Papelão)
         elif any(palavra in desc_lower for palavra in [
-            'plastico', 'plástico', 'pet', 'pvc', 'polietileno', 'polipropileno',
-            'poliestireno', 'sacolinha', 'sacola', 'mista', 'misto', 'pet branca',
-            'pet cristal', 'pet verde', 'pead', 'pebd', 'pp', 'ps'
+            'papel', 'papelao', 'papelão', 'cartao', 'cartão'
         ]):
-            return 'Plastico'
+            return 'PAPEL'
         
-        elif any(palavra in desc_lower for palavra in [
-            'vidro', 'cristal', 'garrafa vidro', 'vidro branco', 'vidro verde',
-            'vidro ambar', 'vidro âmbar', 'vidro marrom'
-        ]):
-            return 'Vidro'
-        
-        elif any(palavra in desc_lower for palavra in [
-            'oleo', 'óleo', 'lubrificante', 'combustivel', 'combustível',
-            'graxa', 'fluido', 'oleo usado', 'óleo usado'
-        ]):
-            return 'Oleo'
-        
-        elif any(palavra in desc_lower for palavra in [
-            'bateria', 'pilha', 'eletronico', 'eletrônico', 'computador',
-            'celular', 'televisor', 'monitor', 'placa', 'cabo', 'fio'
-        ]):
-            return 'Eletronico'
-        
-        elif any(palavra in desc_lower for palavra in [
-            'textil', 'tecido', 'roupa', 'algodao', 'algodão', 'la', 'lã',
-            'poliester', 'nylon', 'fibra'
-        ]):
-            return 'Textil'
-        
-        elif any(palavra in desc_lower for palavra in [
-            'madeira', 'compensado', 'mdf', 'aglomerado', 'pinus', 'eucalipto',
-            'tora', 'tábua', 'prancha'
-        ]):
-            return 'Madeira'
-        
-        elif any(palavra in desc_lower for palavra in [
-            'pneu', 'borracha', 'latex', 'látex', 'mangueira', 'vedacao', 'vedação'
-        ]):
-            return 'Borracha'
-        
-        return "Outros"
+        # Se não for nenhum dos tipos específicos, retorna None (será filtrado)
+        return None
     
     def to_float(self, text: str) -> Optional[float]:
         """Converte texto brasileiro para float (1.234,56 -> 1234.56)"""
@@ -234,12 +168,10 @@ class NFeProcessor:
             return None
         
         try:
-            # Remove espaços e caracteres especiais
             clean_text = re.sub(r'[^\d,.]', '', text.strip())
             if not clean_text:
                 return None
             
-            # Converte formato brasileiro para float
             return float(clean_text.translate(self.patterns['decimal_trans']))
         except (ValueError, TypeError):
             return None
@@ -254,14 +186,13 @@ class NFeProcessor:
             return ""
     
     def extract_cnpjs(self, text: str) -> Tuple[str, str]:
-        """Extrai CNPJs do emitente e destinatário de forma mais robusta"""
+        """Extrai CNPJs do emitente e destinatário"""
         cnpjs = []
         
-        # Padrões mais específicos para CNPJs em NFes
         patterns = [
             r'CNPJ\s*/\s*CPF[:\s]*(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})',
             r'(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})',
-            r'(\d{14})'  # CNPJ sem formatação
+            r'(\d{14})'
         ]
         
         for pattern in patterns:
@@ -276,41 +207,24 @@ class NFeProcessor:
         return (cnpjs[0] if cnpjs else "", cnpjs[1] if len(cnpjs) > 1 else "")
     
     def extract_metadata(self, text: str) -> Dict[str, any]:
-        """Extrai metadados da NFe (cabeçalho, emitente, destinatário)"""
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        
+        """Extrai apenas os metadados essenciais da NFe"""
         metadata = {
             "numero_nfe": "",
-            "serie_nfe": "",
             "data_emissao": None,
-            "chave_acesso": "",
-            "valor_total_nf": None,
-            "emit_nome": "",
-            "emit_cnpj": "",
-            "emit_ie": "",
             "emit_razao_social": "",
-            "emit_uf": "",
-            "emit_municipio": "",
-            "dest_nome": "",
-            "dest_cnpj": "",
-            "dest_ie": "",
+            "emit_cnpj": "",
             "dest_razao_social": "",
-            "dest_uf": "",
-            "dest_municipio": ""
+            "dest_cnpj": ""
         }
         
-        # Extrair número e série da NFe
+        # Extrair número da NFe
         nfe_match = self.patterns['numero_nfe'].search(text)
         if nfe_match:
-            metadata["numero_nfe"], metadata["serie_nfe"] = nfe_match.groups()
+            metadata["numero_nfe"] = nfe_match.group(1)
         else:
-            # Tentar padrões alternativos
             num_match = self.patterns['numero_simples'].search(text)
-            serie_match = self.patterns['serie_simples'].search(text)
             if num_match:
                 metadata["numero_nfe"] = num_match.group(1)
-            if serie_match:
-                metadata["serie_nfe"] = serie_match.group(1)
         
         # Extrair data de emissão
         data_match = self.patterns['data_emissao'].search(text)
@@ -322,42 +236,26 @@ class NFeProcessor:
             except ValueError:
                 pass
         
-        # Extrair chave de acesso
-        chave_match = self.patterns['chave_acesso'].search(text)
-        if chave_match:
-            metadata["chave_acesso"] = re.sub(r"\s+", "", chave_match.group(1))
-        
-        # Extrair valor total
-        valor_match = self.patterns['valor_total'].search(text)
-        if valor_match:
-            metadata["valor_total_nf"] = self.to_float(valor_match.group(1))
-        
         # Extrair CNPJs
         cnpj_emit, cnpj_dest = self.extract_cnpjs(text)
         metadata["emit_cnpj"] = cnpj_emit
         metadata["dest_cnpj"] = cnpj_dest
         
-        # Consultar dados dos CNPJs na API
+        # Consultar razão social dos CNPJs
         if cnpj_emit:
             dados_emit = self.consultar_cnpj_api(cnpj_emit)
             if dados_emit:
                 metadata["emit_razao_social"] = dados_emit.get('razao_social', '')
-                metadata["emit_uf"] = dados_emit.get('uf', '')
-                metadata["emit_municipio"] = dados_emit.get('municipio', '')
-                metadata["emit_nome"] = dados_emit.get('nome_fantasia', '') or dados_emit.get('razao_social', '')
         
         if cnpj_dest:
             dados_dest = self.consultar_cnpj_api(cnpj_dest)
             if dados_dest:
                 metadata["dest_razao_social"] = dados_dest.get('razao_social', '')
-                metadata["dest_uf"] = dados_dest.get('uf', '')
-                metadata["dest_municipio"] = dados_dest.get('municipio', '')
-                metadata["dest_nome"] = dados_dest.get('nome_fantasia', '') or dados_dest.get('razao_social', '')
         
         return metadata
     
     def extract_items_pdfplumber(self, pdf_path: pathlib.Path) -> List[Dict]:
-        """Extrai itens usando pdfplumber com classificação de materiais"""
+        """Extrai apenas itens dos materiais específicos usando pdfplumber"""
         items = []
         
         try:
@@ -386,21 +284,23 @@ class NFeProcessor:
                             if (len(row) >= 9 and row[2] and 
                                 re.fullmatch(r"\d{8}", str(row[2]).strip())):
                                 
-                                item = {}
-                                for i in range(min(len(row), 15)):
-                                    col_name = self.column_mapping.get(i, f"col_{i}")
-                                    value = str(row[i] or "").strip()
-                                    
-                                    if col_name in self.numeric_columns:
-                                        item[col_name] = self.to_float(value)
-                                    else:
-                                        item[col_name] = value
+                                # Extrair apenas os campos necessários
+                                descricao = str(row[1] or "").strip()
+                                quantidade = self.to_float(str(row[6] or "").strip())
+                                valor_total = self.to_float(str(row[8] or "").strip())
                                 
-                                # Adicionar classificação de material
-                                if 'descricao' in item:
-                                    item['tipo_material'] = self.identificar_tipo_material(item['descricao'])
+                                # Classificar material
+                                tipo_material = self.identificar_tipo_material(descricao)
                                 
-                                items.append(item)
+                                # Só incluir se for um dos materiais específicos
+                                if tipo_material:
+                                    item = {
+                                        'descricao': descricao,
+                                        'quantidade': quantidade,
+                                        'valor': valor_total,
+                                        'tipo_material': tipo_material
+                                    }
+                                    items.append(item)
         
         except Exception as e:
             logger.error(f"Erro ao extrair itens com pdfplumber: {e}")
@@ -408,10 +308,10 @@ class NFeProcessor:
         return items
     
     def extract_items_regex(self, text: str) -> List[Dict]:
-        """Extrai itens usando regex como fallback com classificação de materiais"""
+        """Extrai itens usando regex como fallback - apenas materiais específicos"""
         items = []
         
-        # Padrão regex para linha de item
+        # Padrão regex simplificado para linha de item
         item_pattern = re.compile(
             r"(?P<codigo_item>\d{3})\s+"
             r"(?P<descricao>.+?)\s+"
@@ -425,21 +325,25 @@ class NFeProcessor:
         )
         
         for match in item_pattern.finditer(text):
-            item = match.groupdict()
+            data = match.groupdict()
             
-            # Converter campos numéricos
-            for col in ("quantidade", "valor_unit", "valor_total"):
-                item[col] = self.to_float(item[col])
+            # Classificar material
+            tipo_material = self.identificar_tipo_material(data.get('descricao', ''))
             
-            # Adicionar classificação de material
-            item['tipo_material'] = self.identificar_tipo_material(item.get('descricao', ''))
-            
-            items.append(item)
+            # Só incluir se for um dos materiais específicos
+            if tipo_material:
+                item = {
+                    'descricao': data['descricao'],
+                    'quantidade': self.to_float(data['quantidade']),
+                    'valor': self.to_float(data['valor_total']),
+                    'tipo_material': tipo_material
+                }
+                items.append(item)
         
         return items
     
     def process_pdf(self, pdf_path: pathlib.Path) -> List[Dict]:
-        """Processa um único PDF e retorna lista de itens"""
+        """Processa um único PDF e retorna lista de itens filtrados"""
         logger.info(f"Processando: {pdf_path.name}")
         
         try:
@@ -449,26 +353,24 @@ class NFeProcessor:
                 logger.warning(f"Não foi possível extrair texto de {pdf_path.name}")
                 return []
             
-            # Extrair metadados (inclui consulta API CNPJ)
+            # Extrair metadados essenciais
             metadata = self.extract_metadata(text)
             
-            # Extrair itens (tentar pdfplumber primeiro, depois regex)
+            # Extrair itens filtrados
             items = self.extract_items_pdfplumber(pdf_path)
             if not items:
                 items = self.extract_items_regex(text)
             
-            # Adicionar metadados e nome do arquivo a cada item
+            # Adicionar metadados a cada item
             for item in items:
                 item.update(metadata)
-                item["arquivo_origem"] = pdf_path.name
             
             if items:
-                logger.info(f"✓ {pdf_path.name} - {len(items)} itens extraídos")
-                # Log dos tipos de materiais encontrados
-                tipos = set(item.get('tipo_material', 'Outros') for item in items)
-                logger.info(f"  Materiais: {', '.join(tipos)}")
+                logger.info(f"✓ {pdf_path.name} - {len(items)} itens de materiais específicos extraídos")
+                tipos = set(item.get('tipo_material', '') for item in items)
+                logger.info(f"  Materiais encontrados: {', '.join(tipos)}")
             else:
-                logger.warning(f"⚠ {pdf_path.name} - Nenhum item encontrado")
+                logger.warning(f"⚠ {pdf_path.name} - Nenhum material específico encontrado")
             
             return items
             
@@ -509,56 +411,62 @@ class NFeProcessor:
         return all_items, failed_files
     
     def save_to_excel(self, items: List[Dict], filename: str = None) -> pathlib.Path:
-        """Salva dados em planilha Excel com estatísticas"""
+        """Salva dados simplificados em planilha Excel"""
         if not filename:
             timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"nfes_processadas_{timestamp}.xlsx"
+            filename = f"materiais_reciclaveis_{timestamp}.xlsx"
         
         output_path = self.output_dir / filename
         
         try:
             df = pd.DataFrame(items)
             
-            # Reordenar colunas para melhor visualização
-            priority_columns = [
-                "arquivo_origem", "numero_nfe", "serie_nfe", "data_emissao",
-                "emit_razao_social", "emit_cnpj", "emit_uf", "emit_municipio",
-                "dest_razao_social", "dest_cnpj", "dest_uf", "dest_municipio",
-                "valor_total_nf", "codigo_item", "descricao", "tipo_material",
-                "quantidade", "valor_unit", "valor_total", "ncm", "cfop"
+            # Definir ordem das colunas conforme solicitado
+            columns_order = [
+                "emit_razao_social",      # Razão social do emitente
+                "emit_cnpj",              # CNPJ do emitente  
+                "dest_razao_social",      # Razão social do destinatário
+                "dest_cnpj",              # CNPJ do destinatário
+                "numero_nfe",             # Número da nota
+                "data_emissao",           # Data
+                "quantidade",             # Quantidade
+                "valor",                  # Valor
+                "tipo_material",          # Tipo do material
+                "descricao"               # Descrição (adicional para contexto)
             ]
             
-            # Organizar colunas
-            existing_cols = [col for col in priority_columns if col in df.columns]
-            other_cols = [col for col in df.columns if col not in priority_columns]
-            final_columns = existing_cols + other_cols
+            # Reorganizar colunas
+            existing_cols = [col for col in columns_order if col in df.columns]
+            df = df[existing_cols]
             
-            df = df[final_columns]
+            # Renomear colunas para nomes mais limpos
+            df = df.rename(columns={
+                'emit_razao_social': 'Razão Social Emitente',
+                'emit_cnpj': 'CNPJ Emitente',
+                'dest_razao_social': 'Razão Social Destinatário', 
+                'dest_cnpj': 'CNPJ Destinatário',
+                'numero_nfe': 'Número NFe',
+                'data_emissao': 'Data Emissão',
+                'quantidade': 'Quantidade',
+                'valor': 'Valor Total',
+                'tipo_material': 'Tipo Material',
+                'descricao': 'Descrição'
+            })
             
-            # Salvar com múltiplas abas
+            # Salvar planilha
             with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-                # Aba principal com todos os dados
-                df.to_excel(writer, sheet_name='Todos_os_Dados', index=False)
+                df.to_excel(writer, sheet_name='Materiais_Reciclaveis', index=False)
                 
                 # Aba de resumo por tipo de material
-                if 'tipo_material' in df.columns:
-                    resumo_material = df.groupby('tipo_material').agg({
-                        'quantidade': 'sum',
-                        'valor_total': 'sum',
-                        'arquivo_origem': 'count'
-                    }).rename(columns={'arquivo_origem': 'qtd_registros'})
-                    resumo_material.to_excel(writer, sheet_name='Resumo_Materiais')
+                resumo = df.groupby('Tipo Material').agg({
+                    'Quantidade': 'sum',
+                    'Valor Total': 'sum',
+                    'Número NFe': 'count'
+                }).rename(columns={'Número NFe': 'Qtd Registros'})
+                resumo.to_excel(writer, sheet_name='Resumo_por_Material')
                 
-                # Aba de resumo por empresa emitente
-                if 'emit_razao_social' in df.columns:
-                    resumo_emit = df.groupby(['emit_razao_social', 'emit_uf']).agg({
-                        'valor_total_nf': 'sum',
-                        'numero_nfe': 'count'
-                    }).rename(columns={'numero_nfe': 'qtd_nfes'})
-                    resumo_emit.to_excel(writer, sheet_name='Resumo_Emitentes')
-                
-                # Ajustar largura das colunas na aba principal
-                worksheet = writer.sheets['Todos_os_Dados']
+                # Ajustar largura das colunas
+                worksheet = writer.sheets['Materiais_Reciclaveis']
                 for column in worksheet.columns:
                     max_length = 0
                     column_letter = column[0].column_letter
@@ -581,9 +489,10 @@ class NFeProcessor:
             raise
     
     def run(self):
-        """Executa o processamento completo"""
+        """Executa o processamento completo focado em materiais específicos"""
         logger.info("="*50)
-        logger.info("INICIANDO PROCESSAMENTO DE NFes COM API CNPJ")
+        logger.info("PROCESSAMENTO SIMPLIFICADO - MATERIAIS RECICLÁVEIS")
+        logger.info("Materiais alvo: PLÁSTICO, METAL, VIDRO, PAPEL")
         logger.info("="*50)
         
         # Processar todos os PDFs
@@ -599,32 +508,26 @@ class NFeProcessor:
             output_file = self.save_to_excel(all_items)
             
             logger.info(f"✅ SUCESSO!")
-            logger.info(f"   - {len(all_items)} itens processados")
+            logger.info(f"   - {len(all_items)} itens de materiais específicos processados")
             logger.info(f"   - Arquivo gerado: {output_file}")
             
-            # Estatísticas detalhadas
-            df = pd.DataFrame(all_items)
-            nfes_processadas = df['numero_nfe'].nunique()
-            valor_total = df['valor_total'].sum() if 'valor_total' in df.columns else 0
-            
-            logger.info(f"   - {nfes_processadas} NFes únicas processadas")
-            logger.info(f"   - Valor total: R$ {valor_total:,.2f}")
-            
             # Estatísticas por tipo de material
-            if 'tipo_material' in df.columns:
-                materiais = df['tipo_material'].value_counts()
-                logger.info("\n📊 DISTRIBUIÇÃO POR TIPO DE MATERIAL:")
-                for material, qtd in materiais.items():
-                    logger.info(f"   - {material}: {qtd} itens")
+            df = pd.DataFrame(all_items)
+            materiais = df['tipo_material'].value_counts()
+            valor_total = df['valor'].sum() if 'valor' in df.columns else 0
             
-            # Consultas CNPJ realizadas
+            logger.info(f"   - Valor total: R$ {valor_total:,.2f}")
+            logger.info("\n📊 MATERIAIS ENCONTRADOS:")
+            for material, qtd in materiais.items():
+                logger.info(f"   - {material}: {qtd} itens")
+            
             logger.info(f"\n🏢 CNPJs consultados: {len(self.cache_cnpj)}")
         
         else:
-            logger.warning("❌ Nenhum dado foi extraído dos PDFs")
+            logger.warning("❌ Nenhum material específico foi encontrado nos PDFs")
         
         if failed_files:
-            logger.warning(f"\n⚠ Arquivos não processados ({len(failed_files)}):")
+            logger.warning(f"\n⚠ Arquivos sem materiais específicos ({len(failed_files)}):")
             for filename in failed_files:
                 logger.warning(f"   - {filename}")
         
@@ -634,7 +537,7 @@ class NFeProcessor:
 def main():
     """Função principal"""
     try:
-        processor = NFeProcessor()
+        processor = NFeProcessorSimplified()
         processor.run()
     except KeyboardInterrupt:
         logger.info("\nProcessamento interrompido pelo usuário")
