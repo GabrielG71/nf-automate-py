@@ -12,6 +12,7 @@ import threading
 import fitz
 import pdfplumber
 import pandas as pd
+from openpyxl import load_workbook
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
                    handlers=[logging.FileHandler('logs/nfe_processor.log', encoding='utf-8')])
@@ -36,6 +37,7 @@ class NFeProcessorSimplified:
         self.output_dir = self.base_dir / "output" 
         self.processed_dir = self.base_dir / "processed"
         self.logs_dir = self.base_dir / "logs"
+        self.sheets_file = self.base_dir / "Sheets.xlsx"
         
         for dir_path in [self.input_dir, self.output_dir, self.processed_dir, self.logs_dir]:
             dir_path.mkdir(exist_ok=True)
@@ -339,13 +341,7 @@ class NFeProcessorSimplified:
         
         return all_items, failed_files
     
-    def save_to_excel(self, items: List[Dict], filename: str = None) -> pathlib.Path:
-        if not filename:
-            timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"materiais_reciclaveis_{timestamp}.xlsx"
-        
-        output_path = self.output_dir / filename
-        
+    def save_to_sheets(self, items: List[Dict]) -> pathlib.Path:
         try:
             df = pd.DataFrame(items)
             
@@ -370,26 +366,60 @@ class NFeProcessorSimplified:
                 'descricao': 'Descrição'
             })
             
-            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='Materiais_Reciclaveis', index=False)
+            if self.sheets_file.exists():
+                try:
+                    with pd.ExcelWriter(self.sheets_file, mode='a', if_sheet_exists='replace', engine='openpyxl') as writer:
+                        df.to_excel(writer, sheet_name='lancamentos_nf', index=False)
+                        
+                        resumo = df.groupby('Tipo Material').agg({
+                            'Quantidade': 'sum',
+                            'Valor Total': 'sum',
+                            'Número NFe': 'count'
+                        }).rename(columns={'Número NFe': 'Qtd Registros'})
+                        resumo.to_excel(writer, sheet_name='Resumo_por_Material')
+                    
+                    wb = load_workbook(self.sheets_file)
+                    if 'lancamentos_nf' in wb.sheetnames:
+                        worksheet = wb['lancamentos_nf']
+                        for column in worksheet.columns:
+                            max_length = max(len(str(cell.value)) for cell in column if cell.value)
+                            worksheet.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+                        wb.save(self.sheets_file)
+                    
+                except Exception:
+                    with pd.ExcelWriter(self.sheets_file, engine='openpyxl') as writer:
+                        df.to_excel(writer, sheet_name='lancamentos_nf', index=False)
+                        
+                        resumo = df.groupby('Tipo Material').agg({
+                            'Quantidade': 'sum',
+                            'Valor Total': 'sum',
+                            'Número NFe': 'count'
+                        }).rename(columns={'Número NFe': 'Qtd Registros'})
+                        resumo.to_excel(writer, sheet_name='Resumo_por_Material')
+            else:
+                with pd.ExcelWriter(self.sheets_file, engine='openpyxl') as writer:
+                    df.to_excel(writer, sheet_name='lancamentos_nf', index=False)
+                    
+                    resumo = df.groupby('Tipo Material').agg({
+                        'Quantidade': 'sum',
+                        'Valor Total': 'sum',
+                        'Número NFe': 'count'
+                    }).rename(columns={'Número NFe': 'Qtd Registros'})
+                    resumo.to_excel(writer, sheet_name='Resumo_por_Material')
                 
-                resumo = df.groupby('Tipo Material').agg({
-                    'Quantidade': 'sum',
-                    'Valor Total': 'sum',
-                    'Número NFe': 'count'
-                }).rename(columns={'Número NFe': 'Qtd Registros'})
-                resumo.to_excel(writer, sheet_name='Resumo_por_Material')
-                
-                worksheet = writer.sheets['Materiais_Reciclaveis']
-                for column in worksheet.columns:
-                    max_length = max(len(str(cell.value)) for cell in column)
-                    worksheet.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+                wb = load_workbook(self.sheets_file)
+                if 'lancamentos_nf' in wb.sheetnames:
+                    worksheet = wb['lancamentos_nf']
+                    for column in worksheet.columns:
+                        max_length = max(len(str(cell.value)) for cell in column if cell.value)
+                        worksheet.column_dimensions[column[0].column_letter].width = min(max_length + 2, 50)
+                    wb.save(self.sheets_file)
             
-            logger.info(f"✔ Planilha salva: {output_path}")
-            return output_path
+            logger.info(f"✔ Dados salvos em: {self.sheets_file}")
+            return self.sheets_file
             
         except Exception as e:
-            logger.error(f"Erro ao salvar planilha: {e}")
+            logger.error(f"Erro ao salvar dados: {e}")
             raise
     
     def run(self):
@@ -398,7 +428,7 @@ class NFeProcessorSimplified:
         all_items, failed_files = self.process_all_pdfs()
         
         if all_items:
-            output_file = self.save_to_excel(all_items)
+            output_file = self.save_to_sheets(all_items)
             logger.info(f"✅ {len(all_items)} itens processados - {output_file}")
             
             df = pd.DataFrame(all_items)
