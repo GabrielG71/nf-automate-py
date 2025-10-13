@@ -1,0 +1,38 @@
+2025-10-13 17:45:38,414 - INFO - ============================================================
+2025-10-13 17:45:38,418 - INFO - INICIANDO PROCESSAMENTO - MATERIAIS RECICLÁVEIS
+2025-10-13 17:45:38,419 - INFO - ============================================================
+2025-10-13 17:45:38,424 - INFO - Processando 6 arquivo(s)
+2025-10-13 17:45:38,429 - INFO - Processando XML: 31230207121298000137550010000028551007128551-nfe.xml
+2025-10-13 17:45:38,430 - INFO - ✓ 31230207121298000137550010000028551007128551-nfe.xml - 1 itens (VIDRO)
+2025-10-13 17:45:38,449 - INFO - Movido para 'processed': 31230207121298000137550010000028551007128551-nfe.xml
+2025-10-13 17:45:38,454 - INFO - Processando PDF: 31250107121298000137550010000035051007135058-nfe.pdf
+2025-10-13 17:45:38,466 - INFO - Detectadas 1 nota(s) fiscal(is) em 1 página(s)
+2025-10-13 17:45:41,021 - INFO -   NF-e 1: 4 itens extraídos
+2025-10-13 17:45:41,021 - INFO - ✓ 31250107121298000137550010000035051007135058-nfe.pdf - 4 itens (PLASTICO, PAPEL)
+2025-10-13 17:45:41,021 - INFO - Movido para 'processed': 31250107121298000137550010000035051007135058-nfe.pdf
+2025-10-13 17:45:41,037 - INFO - Processando PDF: 31250107121298000137550010000035071007135079-nfe - Copia.pdf
+2025-10-13 17:45:41,037 - INFO - Detectadas 1 nota(s) fiscal(is) em 1 página(s)
+2025-10-13 17:45:42,008 - INFO -   NF-e 1: 1 itens extraídos
+2025-10-13 17:45:42,024 - INFO - ✓ 31250107121298000137550010000035071007135079-nfe - Copia.pdf - 1 itens (METAL)
+2025-10-13 17:45:42,024 - INFO - Movido para 'processed': 31250107121298000137550010000035071007135079-nfe - Copia.pdf
+2025-10-13 17:45:42,024 - INFO - Processando PDF: 31250107121298000137550010000035071007135079-nfe.pdf
+2025-10-13 17:45:42,040 - INFO - Detectadas 1 nota(s) fiscal(is) em 1 página(s)
+2025-10-13 17:45:42,278 - INFO -   NF-e 1: 1 itens extraídos
+2025-10-13 17:45:42,278 - INFO - ✓ 31250107121298000137550010000035071007135079-nfe.pdf - 1 itens (METAL)
+2025-10-13 17:45:42,294 - INFO - Movido para 'processed': 31250107121298000137550010000035071007135079-nfe.pdf
+2025-10-13 17:45:42,294 - INFO - Processando PDF: OY233500662BR_004.pdf
+2025-10-13 17:45:42,325 - INFO - Detectadas 1 nota(s) fiscal(is) em 1 página(s)
+2025-10-13 17:45:43,676 - INFO - Processando PDF: SEI_1370.01.0007906_2025_02.pdf
+2025-10-13 17:45:43,971 - INFO - Detectadas 10 nota(s) fiscal(is) em 17 página(s)
+2025-10-13 17:45:51,320 - INFO - ✔ Planilha salva: C:\Users\Gabriel\Documents\nf-automate-py\output\materiais_reciclaveis_20251013_174550.xlsx
+2025-10-13 17:45:51,328 - INFO - ============================================================
+2025-10-13 17:45:51,328 - INFO - ✅ PROCESSAMENTO CONCLUÍDO
+2025-10-13 17:45:51,462 - INFO - Total de itens: 7
+2025-10-13 17:45:51,470 - INFO - Valor total: R$ 135,232.00
+2025-10-13 17:45:51,480 - INFO - ------------------------------------------------------------
+2025-10-13 17:45:51,480 - INFO -   PLASTICO: 3 itens
+2025-10-13 17:45:51,480 - INFO -   METAL: 2 itens
+2025-10-13 17:45:51,496 - INFO -   VIDRO: 1 itens
+2025-10-13 17:45:51,496 - INFO -   PAPEL: 1 itens
+2025-10-13 17:45:51,496 - INFO - ============================================================
+2025-10-13 17:45:51,511 - WARNING - Arquivos sem materiais: OY233500662BR_004.pdf, SEI_1370.01.0007906_2025_02.pdf
