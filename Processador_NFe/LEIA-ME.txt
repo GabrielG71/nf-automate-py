@@ -1,6 +1,7 @@
 
 ╔═══════════════════════════════════════════════════════════════╗
 ║    PROCESSADOR DE NOTAS FISCAIS - MATERIAIS RECICLÁVEIS       ║
+║                      VERSÃO 2.0                                ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 📋 COMO USAR:
@@ -47,13 +48,22 @@ Processador_NFe.exe      ← Execute este arquivo
   • Número da NF-e
   • Data de emissão
   • Descrição dos produtos
-  • Quantidades
-  • Valores
+  • Quantidades e UNIDADES (KG, UN, PC, etc.)
+  • Valores (com precisão corrigida)
 
 ✓ Gera planilha Excel completa com:
   • Todos os itens encontrados
+  • Coluna de unidades de medida
   • Resumo por tipo de material
   • Colunas organizadas e formatadas
+
+
+🆕 NOVIDADES DA VERSÃO 2.0:
+
+✨ Coluna "Unidade" adicionada (KG, UN, PC, etc.)
+✨ Correção de valores - números agora aparecem corretos
+✨ Melhor extração de dados de XML e PDF
+✨ Interface mais informativa
 
 
 ⚠️ REQUISITOS:
@@ -61,6 +71,23 @@ Processador_NFe.exe      ← Execute este arquivo
 • Windows 7 ou superior
 • Conexão com internet (para consulta automática de CNPJ)
 • Os arquivos devem ser Notas Fiscais Eletrônicas válidas
+
+
+📊 ESTRUTURA DA PLANILHA GERADA:
+
+┌─────────────────────────────────────────────────────┐
+│ • Razão Social Emitente                             │
+│ • CNPJ Emitente                                     │
+│ • Razão Social Destinatário                         │
+│ • CNPJ Destinatário                                 │
+│ • Número NFe                                        │
+│ • Data Emissão                                      │
+│ • Quantidade                                        │
+│ • Unidade (NOVO!)                                   │
+│ • Valor Total                                       │
+│ • Tipo Material                                     │
+│ • Descrição                                         │
+└─────────────────────────────────────────────────────┘
 
 
 ❓ DÚVIDAS COMUNS:
@@ -79,16 +106,25 @@ R: Funciona, mas não conseguirá consultar os nomes das empresas
 P: Onde ficam os arquivos depois de processados?
 R: São movidos automaticamente para a pasta "3-PROCESSADOS".
 
+P: Os valores estavam saindo errados, foi corrigido?
+R: Sim! Na versão 2.0 corrigimos a conversão de valores numéricos
+   para que apareçam exatamente como na nota fiscal.
+
 
 📞 SUPORTE:
 
 Em caso de problemas:
 1. Verifique se seguiu todos os passos corretamente
 2. Certifique-se que os arquivos são NF-e válidas
-3. Entre em contato com o suporte técnico
+3. Verifique a conexão com internet
+4. Entre em contato com o suporte técnico
 
 
 ═══════════════════════════════════════════════════════════════
 
-Versão 1.0 - © 2025
+Versão 2.0 - November 2025
+Changelog:
+• v2.0 - Adição de coluna Unidade + Correção de valores numéricos
+• v1.0 - Versão inicial
+
 Todos os direitos reservados

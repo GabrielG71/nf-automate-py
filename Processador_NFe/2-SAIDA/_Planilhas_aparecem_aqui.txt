@@ -8,4 +8,8 @@ Cada planilha conterá:
 ✓ Aba "Materiais" - Todos os itens processados
 ✓ Aba "Resumo" - Totais por tipo de material
 
+🆕 A partir da versão 2.0, a planilha inclui:
+   • Coluna "Unidade" com a unidade de medida
+   • Valores numéricos corrigidos e precisos
+
 Você pode excluir este arquivo.

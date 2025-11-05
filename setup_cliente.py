@@ -1,5 +1,5 @@
 """
-Script para criar distribuição completa para o cliente
+Script para criar distribuição completa para o cliente - VERSÃO ATUALIZADA
 Execute: python setup_cliente.py
 """
 
@@ -7,6 +7,7 @@ import os
 import shutil
 import zipfile
 from pathlib import Path
+from datetime import datetime
 
 def criar_build_spec():
     """Cria arquivo build.spec otimizado"""
@@ -68,6 +69,35 @@ exe = EXE(
     print("✓ Arquivo build.spec criado")
 
 
+def limpar_builds_antigos():
+    """Remove builds e distribuições antigas (MAS NÃO A PASTA dist DO PYINSTALLER!)"""
+    pastas_limpar = ['build', '__pycache__']  # REMOVIDO 'dist' daqui!
+    arquivos_limpar = ['Processador_NFe.zip', 'Processador_NFe_v*.zip']
+    
+    print("\n🧹 Limpando builds antigos...")
+    
+    # Remove pastas
+    for pasta in pastas_limpar:
+        pasta_path = Path(pasta)
+        if pasta_path.exists():
+            shutil.rmtree(pasta_path)
+            print(f"   ✓ Removida pasta: {pasta}")
+    
+    # Remove ZIPs antigos
+    for pattern in arquivos_limpar:
+        for arquivo in Path('.').glob(pattern):
+            arquivo.unlink()
+            print(f"   ✓ Removido: {arquivo.name}")
+    
+    # Remove distribuição antiga (pasta de cliente)
+    dist_antiga = Path("Processador_NFe")
+    if dist_antiga.exists():
+        shutil.rmtree(dist_antiga)
+        print(f"   ✓ Removida pasta de distribuição: Processador_NFe/")
+    
+    print("   ℹ️  Pasta 'dist/' preservada (contém o executável)")
+
+
 def criar_estrutura_distribuicao():
     """Cria estrutura de pastas para o cliente"""
     
@@ -100,10 +130,11 @@ def criar_estrutura_distribuicao():
         print("   Execute primeiro: pyinstaller build.spec")
         return None
     
-    # Cria README
+    # Cria README atualizado
     readme_content = """
 ╔═══════════════════════════════════════════════════════════════╗
 ║    PROCESSADOR DE NOTAS FISCAIS - MATERIAIS RECICLÁVEIS       ║
+║                      VERSÃO 2.0                                ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 📋 COMO USAR:
@@ -150,13 +181,22 @@ Processador_NFe.exe      ← Execute este arquivo
   • Número da NF-e
   • Data de emissão
   • Descrição dos produtos
-  • Quantidades
-  • Valores
+  • Quantidades e UNIDADES (KG, UN, PC, etc.)
+  • Valores (com precisão corrigida)
 
 ✓ Gera planilha Excel completa com:
   • Todos os itens encontrados
+  • Coluna de unidades de medida
   • Resumo por tipo de material
   • Colunas organizadas e formatadas
+
+
+🆕 NOVIDADES DA VERSÃO 2.0:
+
+✨ Coluna "Unidade" adicionada (KG, UN, PC, etc.)
+✨ Correção de valores - números agora aparecem corretos
+✨ Melhor extração de dados de XML e PDF
+✨ Interface mais informativa
 
 
 ⚠️ REQUISITOS:
@@ -164,6 +204,23 @@ Processador_NFe.exe      ← Execute este arquivo
 • Windows 7 ou superior
 • Conexão com internet (para consulta automática de CNPJ)
 • Os arquivos devem ser Notas Fiscais Eletrônicas válidas
+
+
+📊 ESTRUTURA DA PLANILHA GERADA:
+
+┌─────────────────────────────────────────────────────┐
+│ • Razão Social Emitente                             │
+│ • CNPJ Emitente                                     │
+│ • Razão Social Destinatário                         │
+│ • CNPJ Destinatário                                 │
+│ • Número NFe                                        │
+│ • Data Emissão                                      │
+│ • Quantidade                                        │
+│ • Unidade (NOVO!)                                   │
+│ • Valor Total                                       │
+│ • Tipo Material                                     │
+│ • Descrição                                         │
+└─────────────────────────────────────────────────────┘
 
 
 ❓ DÚVIDAS COMUNS:
@@ -182,18 +239,27 @@ R: Funciona, mas não conseguirá consultar os nomes das empresas
 P: Onde ficam os arquivos depois de processados?
 R: São movidos automaticamente para a pasta "3-PROCESSADOS".
 
+P: Os valores estavam saindo errados, foi corrigido?
+R: Sim! Na versão 2.0 corrigimos a conversão de valores numéricos
+   para que apareçam exatamente como na nota fiscal.
+
 
 📞 SUPORTE:
 
 Em caso de problemas:
 1. Verifique se seguiu todos os passos corretamente
 2. Certifique-se que os arquivos são NF-e válidas
-3. Entre em contato com o suporte técnico
+3. Verifique a conexão com internet
+4. Entre em contato com o suporte técnico
 
 
 ═══════════════════════════════════════════════════════════════
 
-Versão 1.0 - © 2025
+Versão 2.0 - """ + datetime.now().strftime("%B %Y") + """
+Changelog:
+• v2.0 - Adição de coluna Unidade + Correção de valores numéricos
+• v1.0 - Versão inicial
+
 Todos os direitos reservados
 """
     
@@ -201,24 +267,67 @@ Todos os direitos reservados
         f.write(readme_content)
     print("✓ Criado LEIA-ME.txt")
     
+    # Cria CHANGELOG
+    changelog = """
+╔═══════════════════════════════════════════════════════════════╗
+║                    HISTÓRICO DE VERSÕES                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📅 VERSÃO 2.0 - """ + datetime.now().strftime("%d/%m/%Y") + """
+
+🆕 NOVIDADES:
+   ✨ Nova coluna "Unidade" na planilha Excel
+      • Mostra a unidade de medida de cada item (KG, UN, PC, etc.)
+      • Extraída automaticamente de PDF e XML
+   
+   🔧 Correção na conversão de valores numéricos
+      • Os valores agora aparecem exatamente como na nota fiscal
+      • Eliminado problema de zeros extras
+      • Melhor precisão decimal
+   
+   📊 Melhorias na extração de dados
+      • Melhor identificação de tabelas em PDF
+      • Extração mais precisa de unidades
+      • Tratamento aprimorado de diferentes formatos
+
+-------------------------------------------------------------------
+
+📅 VERSÃO 1.0 - Data Inicial
+
+🎉 LANÇAMENTO:
+   • Processamento de PDF e XML
+   • Identificação de materiais recicláveis
+   • Consulta automática de CNPJ
+   • Geração de planilha Excel
+   • Interface gráfica intuitiva
+
+═══════════════════════════════════════════════════════════════
+"""
+    
+    with open(dist_path / "CHANGELOG.txt", "w", encoding="utf-8") as f:
+        f.write(changelog)
+    print("✓ Criado CHANGELOG.txt")
+    
     # Cria arquivo na pasta ENTRADA
     entrada_txt = """╔════════════════════════════════════════════════════╗
 ║              PASTA DE ENTRADA                      ║
 ╚════════════════════════════════════════════════════╝
 
 👉 Coloque aqui seus arquivos de Notas Fiscais:
-   • Arquivos PDF
+   • Arquivos PDF (DANFE)
    • Arquivos XML
 
 📌 IMPORTANTE:
    • Você pode excluir este arquivo depois de ler
    • Pode adicionar vários arquivos de uma vez
    • Os arquivos serão processados automaticamente
+   • Aceita múltiplas NF-e em um único PDF
 
 🚀 Depois de adicionar os arquivos:
    1. Volte para a pasta principal
    2. Execute o "Processador_NFe.exe"
    3. Clique em "PROCESSAR ARQUIVOS"
+   4. Aguarde - os resultados aparecerão na tela!
 """
     
     with open(dist_path / "1-ENTRADA" / "_Coloque_seus_arquivos_aqui.txt", "w", encoding="utf-8") as f:
@@ -235,6 +344,10 @@ Cada planilha conterá:
 ✓ Aba "Materiais" - Todos os itens processados
 ✓ Aba "Resumo" - Totais por tipo de material
 
+🆕 A partir da versão 2.0, a planilha inclui:
+   • Coluna "Unidade" com a unidade de medida
+   • Valores numéricos corrigidos e precisos
+
 Você pode excluir este arquivo.
 """
     
@@ -247,12 +360,14 @@ Você pode excluir este arquivo.
 
 
 def criar_zip(dist_path):
-    """Cria arquivo ZIP da distribuição"""
+    """Cria arquivo ZIP da distribuição com versionamento"""
     if not dist_path or not dist_path.exists():
         print("❌ Pasta de distribuição não encontrada")
         return
     
-    zip_name = f"{dist_path.name}.zip"
+    # Nome com versão e data
+    data_str = datetime.now().strftime("%Y%m%d")
+    zip_name = f"Processador_NFe_v2.0_{data_str}.zip"
     
     print(f"\n📦 Criando arquivo ZIP: {zip_name}")
     
@@ -271,14 +386,66 @@ def criar_zip(dist_path):
     return zip_name
 
 
+def criar_instrucoes_atualizacao():
+    """Cria arquivo com instruções de atualização"""
+    instrucoes = """
+╔═══════════════════════════════════════════════════════════════╗
+║              INSTRUÇÕES DE ATUALIZAÇÃO                         ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📢 ATENÇÃO: Esta é a versão 2.0 com melhorias importantes!
+
+🔄 PARA ATUALIZAR:
+
+1️⃣ BACKUP (Opcional, mas recomendado)
+   • Faça backup da pasta "2-SAIDA" se quiser guardar planilhas antigas
+   • Faça backup da pasta "3-PROCESSADOS" se necessário
+
+2️⃣ SUBSTITUIR
+   • Feche o programa se estiver aberto
+   • Extraia o novo ZIP
+   • Substitua o executável antigo pelo novo
+   • OU: Use a nova pasta completa
+
+3️⃣ MANTER SEUS DADOS
+   • Você pode manter suas pastas "1-ENTRADA", "2-SAIDA" e "3-PROCESSADOS"
+   • Apenas substitua o arquivo "Processador_NFe.exe"
+
+4️⃣ TESTAR
+   • Execute o programa
+   • Processe uma nota de teste
+   • Verifique a nova coluna "Unidade" na planilha
+
+
+✨ O QUE MUDOU:
+
+✓ Nova coluna "Unidade" nas planilhas
+✓ Valores numéricos corrigidos (sem zeros extras)
+✓ Melhor precisão na extração de dados
+
+
+💡 DICA: Reprocesse notas antigas se quiser ter as unidades!
+
+═══════════════════════════════════════════════════════════════
+"""
+    
+    with open("INSTRUCOES_ATUALIZACAO.txt", "w", encoding="utf-8") as f:
+        f.write(instrucoes)
+    
+    print("✓ Criadas instruções de atualização")
+
+
 def main():
     """Função principal"""
-    print("\n" + "="*60)
-    print("  SETUP - PROCESSADOR DE NOTAS FISCAIS")
-    print("="*60 + "\n")
+    print("\n" + "="*70)
+    print("  SETUP - PROCESSADOR DE NOTAS FISCAIS - VERSÃO 2.0")
+    print("="*70 + "\n")
+    
+    # 0. Limpa builds antigos
+    limpar_builds_antigos()
     
     # 1. Cria build.spec
-    print("1️⃣ Criando arquivo de build...")
+    print("\n1️⃣ Criando arquivo de build...")
     criar_build_spec()
     
     # 2. Verifica se executável existe
@@ -287,11 +454,14 @@ def main():
     
     if not exe_path.exists():
         print("\n⚠️  Executável não encontrado!")
-        print("\n📋 Execute os seguintes comandos:")
+        print("\n📋 Execute os seguintes comandos NA ORDEM:")
+        print("\n   " + "─"*60)
         print("   1. pip install pyinstaller")
         print("   2. pyinstaller build.spec")
         print("   3. python setup_cliente.py")
-        print("\n" + "="*60)
+        print("   " + "─"*60)
+        print("\n💡 Aguarde cada comando terminar antes de executar o próximo!")
+        print("\n" + "="*70)
         return
     
     print("✓ Executável encontrado")
@@ -307,17 +477,36 @@ def main():
     print("\n4️⃣ Criando arquivo ZIP...")
     zip_file = criar_zip(dist_path)
     
-    # 5. Resumo final
-    print("\n" + "="*60)
+    # 5. Cria instruções de atualização
+    print("\n5️⃣ Criando instruções de atualização...")
+    criar_instrucoes_atualizacao()
+    
+    # 6. Resumo final
+    print("\n" + "="*70)
     print("✅ SETUP CONCLUÍDO COM SUCESSO!")
-    print("="*60)
+    print("="*70)
     print(f"\n📦 Arquivo pronto para envio: {zip_file}")
     print(f"📁 Pasta de distribuição: {dist_path}/")
+    print(f"📄 Instruções: INSTRUCOES_ATUALIZACAO.txt")
+    
+    print("\n🆕 NOVIDADES DA VERSÃO 2.0:")
+    print("   ✨ Coluna 'Unidade' adicionada")
+    print("   ✨ Correção de valores numéricos")
+    print("   ✨ Melhor extração de dados")
+    
     print("\n💡 O cliente precisa apenas:")
     print("   1. Extrair o arquivo ZIP")
     print("   2. Executar Processador_NFe.exe")
-    print("\n🎉 Tudo pronto para uso!")
-    print("="*60 + "\n")
+    print("   3. Aproveitar as novas funcionalidades!")
+    
+    print("\n📋 ARQUIVOS CRIADOS:")
+    print(f"   • {zip_file}")
+    print(f"   • {dist_path}/")
+    print(f"   • INSTRUCOES_ATUALIZACAO.txt")
+    print(f"   • build.spec")
+    
+    print("\n🎉 Tudo pronto para distribuição!")
+    print("="*70 + "\n")
 
 
 if __name__ == "__main__":

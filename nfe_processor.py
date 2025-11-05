@@ -62,7 +62,6 @@ class NFeProcessor:
     def _setup_patterns(self):
         """Configura padrões regex"""
         self.patterns = {
-            'decimal_trans': str.maketrans({".": "", ",": "."}),
             'cnpj': re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"),
             'data_emissao': re.compile(r"EMISS[ÃA]O[:\s]*([0-9]{2}/[0-9]{2}/[0-9]{4})", re.I),
             'numero_nfe': re.compile(r"NF-e\s+N[ºº°]\s*(\d{1,9})", re.I),
@@ -142,15 +141,28 @@ class NFeProcessor:
         return None
     
     def to_float(self, text: str) -> Optional[float]:
-        """Converte string para float"""
+        """Converte string para float - CORRIGIDO para não adicionar zeros extras"""
         if not text or not isinstance(text, str):
             return None
         
         try:
-            clean_text = re.sub(r'[^\d,.]', '', text.strip())
-            if not clean_text:
-                return None
-            return float(clean_text.translate(self.patterns['decimal_trans']))
+            # Remove espaços e caracteres especiais, mas mantém pontos, vírgulas e dígitos
+            clean_text = text.strip()
+            
+            # Se já for um número puro
+            if clean_text.replace('.', '').replace(',', '').isdigit():
+                # Verifica se usa vírgula como decimal (padrão brasileiro)
+                if ',' in clean_text:
+                    # Remove pontos (separadores de milhar) e substitui vírgula por ponto
+                    clean_text = clean_text.replace('.', '').replace(',', '.')
+                # Se usar ponto como decimal e tiver mais de um ponto, remove os separadores de milhar
+                elif clean_text.count('.') > 1:
+                    parts = clean_text.split('.')
+                    clean_text = ''.join(parts[:-1]) + '.' + parts[-1]
+                
+                return float(clean_text)
+            
+            return None
         except (ValueError, TypeError):
             return None
     
@@ -200,6 +212,7 @@ class NFeProcessor:
                     item = {
                         'descricao': descricao,
                         'quantidade': self._get_xml_float(prod, 'nfe:qCom'),
+                        'unidade': self._get_xml_text(prod, 'nfe:uCom'),
                         'valor': self._get_xml_float(prod, 'nfe:vProd'),
                         'tipo_material': tipo_material
                     }
@@ -389,6 +402,7 @@ class NFeProcessor:
                         
                         if len(row) >= 9 and row[2] and re.fullmatch(r"\d{8}", str(row[2]).strip()):
                             descricao = str(row[1] or "").strip()
+                            unidade = str(row[5] or "").strip() if len(row) > 5 else ""
                             quantidade = self.to_float(str(row[6] or "").strip())
                             valor_total = self.to_float(str(row[8] or "").strip())
                             
@@ -398,6 +412,7 @@ class NFeProcessor:
                                 items.append({
                                     'descricao': descricao,
                                     'quantidade': quantidade,
+                                    'unidade': unidade.upper() if unidade else "",
                                     'valor': valor_total,
                                     'tipo_material': tipo_material
                                 })
@@ -495,6 +510,7 @@ class NFeProcessor:
                 items.append({
                     'descricao': data['descricao'],
                     'quantidade': self.to_float(data['quantidade']),
+                    'unidade': data.get('unid', '').upper(),
                     'valor': self.to_float(data['valor_total']),
                     'tipo_material': tipo_material
                 })
@@ -555,7 +571,7 @@ class NFeProcessor:
         
         columns_order = [
             "emit_razao_social", "emit_cnpj", "dest_razao_social", "dest_cnpj",
-            "numero_nfe", "data_emissao", "quantidade", "valor", "tipo_material", "descricao"
+            "numero_nfe", "data_emissao", "quantidade", "unidade", "valor", "tipo_material", "descricao"
         ]
         
         existing_cols = [col for col in columns_order if col in df.columns]
@@ -569,6 +585,7 @@ class NFeProcessor:
             'numero_nfe': 'Número NFe',
             'data_emissao': 'Data Emissão',
             'quantidade': 'Quantidade',
+            'unidade': 'Unidade',
             'valor': 'Valor Total',
             'tipo_material': 'Tipo Material',
             'descricao': 'Descrição'
@@ -758,7 +775,7 @@ identifica materiais recicláveis.
 ✓ Aceita arquivos PDF e XML
 ✓ Processa múltiplas NF-e por arquivo
 ✓ Identifica: Plástico, Metal, Vidro e Papel
-✓ Gera planilha Excel completa
+✓ Gera planilha Excel completa com unidades
 
 Pronto para começar!
 """

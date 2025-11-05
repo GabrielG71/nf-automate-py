@@ -1,0 +1,39 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║              INSTRUÇÕES DE ATUALIZAÇÃO                         ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📢 ATENÇÃO: Esta é a versão 2.0 com melhorias importantes!
+
+🔄 PARA ATUALIZAR:
+
+1️⃣ BACKUP (Opcional, mas recomendado)
+   • Faça backup da pasta "2-SAIDA" se quiser guardar planilhas antigas
+   • Faça backup da pasta "3-PROCESSADOS" se necessário
+
+2️⃣ SUBSTITUIR
+   • Feche o programa se estiver aberto
+   • Extraia o novo ZIP
+   • Substitua o executável antigo pelo novo
+   • OU: Use a nova pasta completa
+
+3️⃣ MANTER SEUS DADOS
+   • Você pode manter suas pastas "1-ENTRADA", "2-SAIDA" e "3-PROCESSADOS"
+   • Apenas substitua o arquivo "Processador_NFe.exe"
+
+4️⃣ TESTAR
+   • Execute o programa
+   • Processe uma nota de teste
+   • Verifique a nova coluna "Unidade" na planilha
+
+
+✨ O QUE MUDOU:
+
+✓ Nova coluna "Unidade" nas planilhas
+✓ Valores numéricos corrigidos (sem zeros extras)
+✓ Melhor precisão na extração de dados
+
+
+💡 DICA: Reprocesse notas antigas se quiser ter as unidades!
+
+═══════════════════════════════════════════════════════════════

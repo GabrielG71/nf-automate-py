@@ -1,0 +1,34 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    HISTÓRICO DE VERSÕES                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📅 VERSÃO 2.0 - 05/11/2025
+
+🆕 NOVIDADES:
+   ✨ Nova coluna "Unidade" na planilha Excel
+      • Mostra a unidade de medida de cada item (KG, UN, PC, etc.)
+      • Extraída automaticamente de PDF e XML
+   
+   🔧 Correção na conversão de valores numéricos
+      • Os valores agora aparecem exatamente como na nota fiscal
+      • Eliminado problema de zeros extras
+      • Melhor precisão decimal
+   
+   📊 Melhorias na extração de dados
+      • Melhor identificação de tabelas em PDF
+      • Extração mais precisa de unidades
+      • Tratamento aprimorado de diferentes formatos
+
+-------------------------------------------------------------------
+
+📅 VERSÃO 1.0 - Data Inicial
+
+🎉 LANÇAMENTO:
+   • Processamento de PDF e XML
+   • Identificação de materiais recicláveis
+   • Consulta automática de CNPJ
+   • Geração de planilha Excel
+   • Interface gráfica intuitiva
+
+═══════════════════════════════════════════════════════════════

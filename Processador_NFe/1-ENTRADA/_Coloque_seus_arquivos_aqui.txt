@@ -3,15 +3,17 @@
 ╚════════════════════════════════════════════════════╝
 
 👉 Coloque aqui seus arquivos de Notas Fiscais:
-   • Arquivos PDF
+   • Arquivos PDF (DANFE)
    • Arquivos XML
 
 📌 IMPORTANTE:
    • Você pode excluir este arquivo depois de ler
    • Pode adicionar vários arquivos de uma vez
    • Os arquivos serão processados automaticamente
+   • Aceita múltiplas NF-e em um único PDF
 
 🚀 Depois de adicionar os arquivos:
    1. Volte para a pasta principal
    2. Execute o "Processador_NFe.exe"
    3. Clique em "PROCESSAR ARQUIVOS"
+   4. Aguarde - os resultados aparecerão na tela!
