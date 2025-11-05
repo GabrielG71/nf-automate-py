@@ -1,0 +1,94 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║    PROCESSADOR DE NOTAS FISCAIS - MATERIAIS RECICLÁVEIS       ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 COMO USAR:
+
+1️⃣ ADICIONAR ARQUIVOS
+   • Abra a pasta "1-ENTRADA"
+   • Copie seus arquivos PDF ou XML de Notas Fiscais para lá
+   • Pode adicionar vários arquivos de uma vez
+   • Cada PDF pode conter várias NF-e
+
+2️⃣ PROCESSAR
+   • Dê um duplo clique no arquivo "Processador_NFe.exe"
+   • Clique no botão "PROCESSAR ARQUIVOS"
+   • Aguarde o processamento (acompanhe na tela)
+
+3️⃣ VER RESULTADOS
+   • Abra a pasta "2-SAIDA"
+   • Você encontrará uma planilha Excel com todos os dados
+   • Os arquivos processados estarão em "3-PROCESSADOS"
+
+
+📂 ESTRUTURA DE PASTAS:
+
+Processador_NFe.exe      ← Execute este arquivo
+│
+├── 1-ENTRADA/           ← Coloque os PDFs e XMLs aqui
+│
+├── 2-SAIDA/             ← Planilhas geradas aqui
+│
+└── 3-PROCESSADOS/       ← Arquivos já processados
+
+
+🔍 O QUE O PROGRAMA FAZ:
+
+✓ Lê arquivos PDF e XML de Notas Fiscais Eletrônicas
+✓ Identifica materiais recicláveis automaticamente:
+  • Plástico (PET, PVC, PEAD, PP, etc.)
+  • Metal (Ferro, Aço, Alumínio, Cobre, etc.)
+  • Vidro
+  • Papel e Papelão
+
+✓ Extrai informações:
+  • Dados do emitente e destinatário (com consulta automática de CNPJ)
+  • Número da NF-e
+  • Data de emissão
+  • Descrição dos produtos
+  • Quantidades
+  • Valores
+
+✓ Gera planilha Excel completa com:
+  • Todos os itens encontrados
+  • Resumo por tipo de material
+  • Colunas organizadas e formatadas
+
+
+⚠️ REQUISITOS:
+
+• Windows 7 ou superior
+• Conexão com internet (para consulta automática de CNPJ)
+• Os arquivos devem ser Notas Fiscais Eletrônicas válidas
+
+
+❓ DÚVIDAS COMUNS:
+
+P: O programa não encontrou materiais na minha nota?
+R: Verifique se a NF-e contém produtos com palavras-chave como 
+   "plástico", "metal", "vidro", "papel", etc. na descrição.
+
+P: Posso processar várias notas de uma vez?
+R: Sim! Coloque todos os arquivos na pasta "1-ENTRADA" e processe.
+
+P: O programa funciona offline?
+R: Funciona, mas não conseguirá consultar os nomes das empresas
+   por CNPJ. As demais funções continuarão operando normalmente.
+
+P: Onde ficam os arquivos depois de processados?
+R: São movidos automaticamente para a pasta "3-PROCESSADOS".
+
+
+📞 SUPORTE:
+
+Em caso de problemas:
+1. Verifique se seguiu todos os passos corretamente
+2. Certifique-se que os arquivos são NF-e válidas
+3. Entre em contato com o suporte técnico
+
+
+═══════════════════════════════════════════════════════════════
+
+Versão 1.0 - © 2025
+Todos os direitos reservados

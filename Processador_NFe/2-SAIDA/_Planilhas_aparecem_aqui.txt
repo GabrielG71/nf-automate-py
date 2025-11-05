@@ -1,0 +1,11 @@
+╔════════════════════════════════════════════════════╗
+║              PASTA DE SAÍDA                        ║
+╚════════════════════════════════════════════════════╝
+
+📊 As planilhas Excel geradas aparecerão aqui!
+
+Cada planilha conterá:
+✓ Aba "Materiais" - Todos os itens processados
+✓ Aba "Resumo" - Totais por tipo de material
+
+Você pode excluir este arquivo.
